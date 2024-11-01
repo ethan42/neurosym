@@ -43,7 +43,7 @@ SYSTEM_PROMPT = os.environ.get("NEUROSYM_SYSTEM_PROMPT", "Solve the task you wer
 
 
 # Define the function that calls the model
-def call_model(state, _config, model):
+def call_model(state, config, model):
     messages = state["messages"]
     messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
     response = model.invoke(messages)
