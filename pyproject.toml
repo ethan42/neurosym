@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "neurosym"
+version = "0.1.0"
+description = ""
+authors = ["Thanassis Avgerinos <thanassis.avgerinos@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+langgraph = "^0.2.39"
+langchain-openai = "^0.2.3"
+langchain-community = "^0.3.3"
+gitpython = "^3.1.43"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# add main entrypoint
+[tool.poetry.scripts]
+main = "neurosym:main"
