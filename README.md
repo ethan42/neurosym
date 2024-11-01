@@ -12,6 +12,7 @@ To setup, we recommend setting up a virtual environment:
 
 ```sh
 python3 -m venv venv
+. ./venv/bin/activate
 ```
 
 and then simply run:
@@ -21,7 +22,7 @@ poetry install
 ```
 
 If you haven't installed poetry, you can do it through `pip install poetry`
-or your package manager.
+or your package manager (e.g., `apt install python3-poetry` on Ubuntu).
 
 ## Running
 
@@ -34,6 +35,6 @@ export OPENAI_API_KEY=...your_key...
 Running the demo's main entry point is as simple as:
 
 ```sh
-poetry run main
+poetry run main "what you want on this computer"
 ```
 

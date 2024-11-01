@@ -14,7 +14,7 @@ from langgraph.graph import add_messages, StateGraph, END
 from langgraph.prebuilt import ToolNode
 
 
-DEFAULT_MODEL = os.environ.get("NEUROSYM_DEFAULT_MODEL", "gpt-4o-mini")
+NEUROSYM_DEFAULT_MODEL = os.environ.get("NEUROSYM_DEFAULT_MODEL", "gpt-4o-mini")
 
 
 class AgentState(TypedDict):
@@ -24,17 +24,6 @@ class AgentState(TypedDict):
 # Define the config
 class GraphConfig(TypedDict):
     model_name: Literal["openai"]  # other models can be added here
-
-
-@lru_cache(maxsize=4)
-def _get_model(model_name: str, toolbox):
-    if model_name == "openai":
-        model = ChatOpenAI(temperature=0, model_name="gpt-4o-mini")
-    else:
-        raise ValueError(f"Unsupported model type: {model_name}")
-
-    model = model.bind_tools(toolbox)
-    return model
 
 
 # Define the function that determines whether to continue using tools
@@ -54,11 +43,9 @@ SYSTEM_PROMPT = os.environ.get("NEUROSYM_SYSTEM_PROMPT", "Solve the task you wer
 
 
 # Define the function that calls the model
-def call_model(state, config, toolbox):
+def call_model(state, _config, model):
     messages = state["messages"]
     messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
-    model_name = config.get('configurable', {}).get("model_name", "openai")
-    model = _get_model(model_name, toolbox)
     response = model.invoke(messages)
     # We return a list, because this will get added to the existing list
     return {"messages": [response]}
@@ -75,8 +62,12 @@ def while_loop(toolbox):
     workflow = StateGraph(AgentState, config_schema=GraphConfig)
     toolnode = ToolNode(toolbox)
 
+    # Define the model / only OpenAI for now, can be configured
+    model = ChatOpenAI(temperature=0, model_name=NEUROSYM_DEFAULT_MODEL)
+    model = model.bind_tools(toolbox)
+
     # Define the two nodes we will cycle between
-    workflow.add_node("agent", partial(call_model, toolbox=toolbox))
+    workflow.add_node("agent", partial(call_model, model=model))
     workflow.add_node("action", toolnode)
 
     # Set the entrypoint as `agent`
