@@ -6,7 +6,9 @@ import json
 import jsonschema
 import os
 
-from functools import lru_cache, partial
+from dataclasses import dataclass, field
+from dataclasses_jsonschema import JsonSchemaMixin
+from functools import partial
 from typing import TypedDict, Annotated, Sequence, Literal, List, Optional, Tuple, Any
 
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -46,7 +48,10 @@ def should_continue(state):
         return "continue"
 
 
-SYSTEM_PROMPT = os.environ.get("NEUROSYM_SYSTEM_PROMPT", "Solve the task you were provided. You can run as many actions as necessary to solve the problem. You can use all tools at your disposal. Do not use a tool if you do not need it. Note that all commands you invoke have to be **'one-shot'**, in other words you **can't launch interactive sessions** because you are running within an llm chain.")
+SYSTEM_PROMPT = os.environ.get(
+    "NEUROSYM_SYSTEM_PROMPT",
+    "Solve the task you were provided. You can run as many actions as necessary to solve the problem. You can use all tools at your disposal. Do not use a tool if you do not need it. Note that all commands you invoke have to be **'one-shot'**, in other words you **can't launch interactive sessions** because you are running within an llm chain.",
+)
 
 
 # Define the function that calls the model
@@ -61,10 +66,12 @@ def call_model(state, config, model):
 # Define the function that calls the model
 def call_postprocess(state, config, model, schema):
     messages = state["messages"]
-    messages = [{
-        "role": "system",
-        "content": f"Convert the data to the jsonschema you will be provided with. Emit only json data, nothing else. The schema is: {schema}"
-    }] + messages
+    messages = [
+        {
+            "role": "system",
+            "content": f"Convert the data to the jsonschema you will be provided with. Emit only json data, nothing else. The schema is: {schema}",
+        }
+    ] + messages
     response = model.invoke(messages)
     # We return a list, because this will get added to the existing list
     return {"messages": [response]}
@@ -135,33 +142,34 @@ def agent_tool_loop(toolbox, schema):
     return graph
 
 
-DEFAULT_SCHEMA = {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "properties": {
-    "result": {
-      "type": "string"
-    }
-  },
-  "required": ["result"],
-  "additionalProperties": False
-}
+@dataclass
+class Result(JsonSchemaMixin):
+    result: str = field(metadata={"description": "The result of the computation"})
 
 
-def while_loop(prompt: str, toolbox: List[Any], max_iterations=10, schema=None) -> Optional[Tuple[Any, List[BaseMessage]]]:
+def compute(
+    prompt: str,
+    toolbox: List[Any],
+    max_iterations: int = 10,
+    schema: Optional[JsonSchemaMixin] = None,
+) -> Optional[Tuple[Any, List[BaseMessage]]]:
     """Run the following tools in a loop up to max_iterations and return the result as a string."""
     if schema is None:
-        schema = DEFAULT_SCHEMA
+        schema = Result
+    json_schema = schema.json_schema()
 
-    program = agent_tool_loop(toolbox, schema)
+    program = agent_tool_loop(toolbox, json_schema)
     try:
         final_state = program.invoke(
             {"messages": [HumanMessage(content=prompt)]},
-            config={"configurable": {"thread_id": 42}, "recursion_limit": max_iterations},
+            config={
+                "configurable": {"thread_id": 42},
+                "recursion_limit": max_iterations,
+            },
         )
         results = final_state["messages"]
         result = json.loads(results[-1].content)
-        jsonschema.validate(result, schema)
-        return result, results
+        jsonschema.validate(result, json_schema)
+        return schema.from_dict(result), results
     except GraphRecursionError:
         return None

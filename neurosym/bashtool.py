@@ -10,8 +10,12 @@ from pydantic import BaseModel, Field
 class BashInput(BaseModel):
     """Commands for the Bash Shell tool."""
 
-    command: str = Field(description=f"Bash shell command to run on this {platform.system()} system. Output will be truncated to 1024 characters, so make sure you extract the output you need. The command will be killed after 10 seconds.")
-    reason: str = Field(description="One-sentence reason (up to 140 chars) for running the command.")
+    command: str = Field(
+        description=f"Bash shell command to run on this {platform.system()} system. Output will be truncated to 1024 characters, so make sure you extract the output you need. The command will be killed after 10 seconds."
+    )
+    reason: str = Field(
+        description="One-sentence reason (up to 140 chars) for running the command."
+    )
 
 
 class BashTool(BaseTool):
@@ -23,7 +27,10 @@ class BashTool(BaseTool):
         print(f"## {reason}")
         print(f"{command}")
         # run command in a shell and capture stdout and stderr
-        process = run(["/usr/bin/timeout", "-s", "9", "10", "/bin/bash", "-c", command], capture_output=True)
+        process = run(
+            ["/usr/bin/timeout", "-s", "9", "10", "/bin/bash", "-c", command],
+            capture_output=True,
+        )
         stdout = process.stdout.decode("utf-8")
         stderr = process.stderr.decode("utf-8")
         trunc_limit = 1024
