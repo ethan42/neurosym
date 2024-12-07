@@ -1,3 +1,4 @@
+import argparse
 import sys
 
 from dataclasses import dataclass, field
@@ -12,25 +13,35 @@ from .blocks import compute
 
 # Example schema
 @dataclass
-class Formula(JsonSchemaMixin):
-    path: str = field(
-        metadata={"description": "Path of the generated optimized formula"}
+class Secret(JsonSchemaMixin):
+    pin: str = field(
+        metadata={"description": "Value of the secret pin"}
     )
 
 
 def main():
     """Simple neurosymbolic solver with bash/z3/read/write file capabilities."""
-    if len(sys.argv) < 2:
-        print("Usage: You need to provide an instruction to the neurosymbolic solver.")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Neurosymbolic solver")
+    parser.add_argument("goal", help="Goal for the neurosymbolic solver")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
+    parser.add_argument("-d", "--debug", action="store_true", help="Debug mode")
+    args = parser.parse_args()
 
-    user_input = sys.argv[1]
+    user_input = args.goal
+    verbose = args.verbose
+    debug = args.debug
 
-    toolbox = [BashTool(), Z3Tool(), ReadFileTool(verbose=True), WriteFileTool(verbose=True)]
-    formula, messages = compute(prompt=user_input, toolbox=toolbox, schema=Formula)
-    for message in messages:
-        print(message)
-    print(formula.path)
+    toolbox = [
+        BashTool(verbose=verbose),
+        Z3Tool(verbose=verbose),
+        ReadFileTool(verbose=verbose),
+        WriteFileTool(verbose=verbose)
+    ]
+    result, messages = compute(prompt=user_input, toolbox=toolbox) #, schema=Secret)
+    if debug:
+        for message in messages:
+            print(message)
+    print(result.result)
 
 
 __all__ = ["main"]

@@ -28,7 +28,7 @@ class BashTool(BaseTool):
         print(f"{command}")
         # run command in a shell and capture stdout and stderr
         process = run(
-            ["/usr/bin/timeout", "-s", "9", "10", "/bin/bash", "-c", command],
+            ["/usr/bin/timeout", "-s", "9", "30", "/bin/bash", "-c", command],
             capture_output=True,
         )
         stdout = process.stdout.decode("utf-8")
@@ -46,5 +46,9 @@ class BashTool(BaseTool):
             "returncode": process.returncode,
             "timeout": timeout,
         }
-        print(result)
+        if self.verbose:
+            print(result)
+        else:
+            print(result["stdout"])
+            print(result["stderr"])
         return str(result)

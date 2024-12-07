@@ -150,7 +150,7 @@ class Result(JsonSchemaMixin):
 def compute(
     prompt: str,
     toolbox: List[Any],
-    max_iterations: int = 10,
+    max_iterations: int = 100,
     schema: Optional[JsonSchemaMixin] = None,
 ) -> Optional[Tuple[Any, List[BaseMessage]]]:
     """Run the following tools in a loop up to max_iterations and return the result as a string."""
